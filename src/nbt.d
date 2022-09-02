@@ -212,6 +212,7 @@ class NbtList : Nbt {
 
 	override string toJson(bool humanReadable = false) const {
 		string ret = "[";
+		if (humanReadable) { ret ~= "\n" ~ "\t".replicate(depth++); }
 
 		foreach(i, item; values)
 		{
@@ -227,21 +228,38 @@ class NbtList : Nbt {
 			}
 			ret ~= item.toJson(humanReadable);
 		}
-		
+		if (humanReadable) { ret ~= "\n" ~ "\t".replicate(--depth); }
 		return ret ~ "]";
 	}
 }
 
 class NbtCompound : Nbt {
-	public Nbt[NbtString] values;
+	public Nbt[string] values;
 	
-	void set(NbtString key, Nbt value) {
+	void set(string key, Nbt value) { 
 		values[key] = value;
 	}
 	
-	NbtString getString(NbtString key) {
-		return cast(NbtString)values[key];
+	void set(NbtString key, Nbt value) { set(key.value, value); }
+	void set(string key, string value) { set(key, new NbtString(value)); }
+	
+	mixin template getMixin(Type) {
+		Type get(T : Type)(string key) {
+			return cast(Type)values[key];
+		}
 	}
+	mixin getMixin!NbtByte;
+	mixin getMixin!NbtShort;
+	mixin getMixin!NbtInt;
+	mixin getMixin!NbtLong;
+	mixin getMixin!NbtFloat;
+	mixin getMixin!NbtDouble;
+	mixin getMixin!NbtByteArray;
+	mixin getMixin!NbtString;
+	mixin getMixin!NbtList;
+	mixin getMixin!NbtCompound;
+	mixin getMixin!NbtIntArray;
+	mixin getMixin!NbtLongArray;
 
 	override Type getType() const {return Type.Compound;}
 	
@@ -269,7 +287,7 @@ class NbtCompound : Nbt {
 					ret ~= "\n";
 				}
 			}
-			ret ~= (newLine ? "\t".replicate(depth) : "") ~ pair.key.toJson ~ (humanReadable ? ": " : ":") ~ pair.value.toJson(humanReadable);
+			ret ~= (newLine ? "\t".replicate(depth) : "") ~ "\"" ~ pair.key ~ "\"" ~ (humanReadable ? ": " : ":") ~ pair.value.toJson(humanReadable);
 		}
 
 		if (humanReadable) {
